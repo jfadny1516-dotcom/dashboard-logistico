@@ -46,9 +46,10 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
 
+# Evaluación del modelo
 y_pred = model.predict(X_test)
 mae = mean_absolute_error(y_test, y_pred)
-rmse = mean_squared_error(y_test, y_pred, squared=False)
+rmse = (mean_squared_error(y_test, y_pred))**0.5  # ✅ corregido
 r2 = r2_score(y_test, y_pred)
 
 st.write("📊 Resultados del Modelo:")
