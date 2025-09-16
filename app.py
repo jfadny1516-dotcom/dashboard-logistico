@@ -63,9 +63,9 @@ def load_data():
                 conn.execute(text("""
                     INSERT INTO public.entregas (fecha, zona, tipo_pedido, clima, trafico, tiempo_entrega, retraso)
                     VALUES
-                    ('2025-09-16 10:00', 'Zona 1', 'Normal', 'Soleado', 'Fluido', 45, 0),
-                    ('2025-09-16 12:30', 'Zona 2', 'Express', 'Lluvioso', 'Pesado', 60, 15),
-                    ('2025-09-16 14:00', 'Zona 3', 'Normal', 'Nublado', 'Moderado', 50, 5);
+                    ('2025-09-16 10:00', 'La Libertad', 'Normal', 'Soleado', 'Fluido', 45, 0),
+                    ('2025-09-16 12:30', 'San Salvador', 'Express', 'Lluvioso', 'Pesado', 60, 15),
+                    ('2025-09-16 14:00', 'San Miguel', 'Normal', 'Nublado', 'Moderado', 50, 5);
                 """))
             # Leer datos
             df = pd.read_sql("SELECT * FROM public.entregas ORDER BY id_entrega", conn)
@@ -135,7 +135,7 @@ if not df.empty:
     st.subheader("✏️ Agregar nueva entrega")
     with st.form("nuevo_pedido_form"):
         fecha = st.date_input("Fecha", value=pd.to_datetime("today"))
-        zona = st.selectbox("Zona", df["zona"].unique())
+        zona = st.selectbox("Zona", df["San Salvador, Santa Ana, San Miguel, La Libertad"].unique())
         tipo_pedido = st.selectbox("Tipo de pedido", df["tipo_pedido"].unique())
         clima = st.selectbox("Clima", df["clima"].unique())
         trafico = st.selectbox("Tráfico", df["trafico"].unique())
