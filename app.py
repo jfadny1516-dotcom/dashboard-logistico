@@ -36,7 +36,7 @@ else:
 
     try:
         engine = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "require"})
-        with engine.connect() as conn: # Prueba de conexión
+        with engine.connect() as conn:# Prueba de conexión
             test = conn.execute(text("SELECT 1")).scalar()
             st.success(f"✅ Conexión a PostgreSQL establecida (prueba SELECT 1 = {test})")
 
