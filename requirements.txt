@@ -4,9 +4,3 @@ pandas
 scikit-learn
 sqlalchemy
 psycopg2-binary
-streamlit
-plotly
-pandas
-scikit-learn
-sqlalchemy
-psycopg2-binary
