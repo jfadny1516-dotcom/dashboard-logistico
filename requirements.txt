@@ -6,3 +6,4 @@ openpyxl
 xlsxwriter
 folium
 streamlit-folium
+plotly
