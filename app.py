@@ -146,3 +146,36 @@ if st.button("Estimar tiempo de entrega"):
         else:
             tiempo_promedio = round(df["tiempo_entrega"].mean(), 2)
             st.info(f"ℹ️ No hay datos exactos para esa combinación. Estimado general: **{tiempo_promedio} min**")
+
+# ==============================
+# 📂 CARGAR DATOS DESDE EXCEL/CSV
+# ==============================
+st.subheader("📂 Subir entregas desde Excel o CSV")
+
+archivo = st.file_uploader("Selecciona un archivo CSV o Excel", type=["csv", "xlsx"])
+
+if archivo is not None:
+    try:
+        # Leer el archivo
+        if archivo.name.endswith(".csv"):
+            df_upload = pd.read_csv(archivo)
+        else:
+            df_upload = pd.read_excel(archivo)
+
+        st.write("📋 Vista previa de los datos cargados:")
+        st.dataframe(df_upload.head())
+
+        # Validar que las columnas sean correctas
+        columnas_necesarias = ["fecha", "zona", "tipo_pedido", "clima", "trafico", "tiempo_entrega", "retraso"]
+        if all(col in df_upload.columns for col in columnas_necesarias):
+            
+            if st.button("🚀 Insertar en la base de datos"):
+                df_upload.to_sql("entregas", engine, schema="public", if_exists="append", index=False)
+                st.success("✅ Datos insertados correctamente en la base de PostgreSQL")
+                st.cache_data.clear()
+        else:
+            st.error(f"❌ El archivo debe contener las columnas: {columnas_necesarias}")
+
+    except Exception as e:
+        st.error(f"❌ Error al procesar el archivo: {e}")
+
