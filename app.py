@@ -32,7 +32,7 @@ else:
 
    try:
        engine = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "requiere"})
-       with engine.connect() as conn:
+       with engine.connect() as conn:   
 
             # Crear tabla entregas si no existe
             conn.execute(text("""
