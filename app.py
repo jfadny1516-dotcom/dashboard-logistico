@@ -8,11 +8,14 @@ from sqlalchemy import create_engine, text
 import os
 
 # ============================================================
-# 🔎 Diagnóstico de conexión (solo para depurar)
+# 🔎 Encabezado y descripción
 # ============================================================
 st.header("📦 Dashboard Predictivo de Entregas - ChivoFast")
 st.markdown("Análisis y predicción de tiempos de entrega usando Inteligencia Artificial")
 
+# ============================================================
+# 🔗 Configuración de la base de datos
+# ============================================================
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
@@ -34,10 +37,36 @@ else:
     try:
         engine = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "require"})
         with engine.connect() as conn:
+            # Prueba de conexión
             test = conn.execute(text("SELECT 1")).scalar()
             st.success(f"✅ Conexión a PostgreSQL establecida (prueba SELECT 1 = {test})")
+
+            # ============================================================
+            # 🛠 Crear tabla entregas si no existe y agregar datos de prueba
+            # ============================================================
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS entregas (
+                    id_entrega SERIAL PRIMARY KEY,
+                    fecha TIMESTAMP NOT NULL,
+                    zona VARCHAR(50) NOT NULL,
+                    tipo_pedido VARCHAR(50) NOT NULL,
+                    clima VARCHAR(20) NOT NULL,
+                    trafico VARCHAR(20) NOT NULL,
+                    tiempo_entrega INT NOT NULL,
+                    retraso INT NOT NULL
+                );
+            """))
+
+            conn.execute(text("""
+                INSERT INTO entregas (fecha, zona, tipo_pedido, clima, trafico, tiempo_entrega, retraso)
+                VALUES
+                ('2025-09-16 10:00', 'Zona 1', 'Normal', 'Soleado', 'Fluido', 45, 0),
+                ('2025-09-16 12:30', 'Zona 2', 'Express', 'Lluvioso', 'Pesado', 60, 15),
+                ('2025-09-16 14:00', 'Zona 3', 'Normal', 'Nublado', 'Moderado', 50, 5)
+                ON CONFLICT DO NOTHING;
+            """))
     except Exception as e:
-        st.error("❌ Error al conectar a la base de datos:")
+        st.error("❌ Error al conectar o inicializar la base de datos:")
         st.text(str(e))
 
 # ============================================================
@@ -47,12 +76,15 @@ else:
 def load_data():
     if not DATABASE_URL:
         return pd.DataFrame()
-    engine = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "require"})
-    df = pd.read_sql("SELECT * FROM entregas", engine)
+    engine_local = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "require"})
+    df = pd.read_sql("SELECT * FROM entregas", engine_local)
     return df
 
 df = load_data()
 
+# ============================================================
+# 📊 Dashboard y análisis
+# ============================================================
 if not df.empty:
     st.subheader("📌 Indicadores Clave (KPIs)")
     col1, col2, col3 = st.columns(3)
@@ -70,7 +102,6 @@ if not df.empty:
     st.plotly_chart(px.box(df, x="clima", y="tiempo_entrega", color="clima"))
 
     st.subheader("🤖 Predicción de Tiempo de Entrega")
-
     df_ml = pd.get_dummies(df.drop(columns=["id_entrega", "fecha"]), drop_first=True)
     X = df_ml.drop(columns=["tiempo_entrega"])
     y = df_ml["tiempo_entrega"]
@@ -88,7 +119,6 @@ if not df.empty:
     st.write(f"MAE: {round(mae,2)} | RMSE: {round(rmse,2)} | R²: {round(r2,2)}")
 
     st.subheader("🔮 Estimar un nuevo pedido")
-
     zona = st.selectbox("Zona", df["zona"].unique())
     tipo_pedido = st.selectbox("Tipo de pedido", df["tipo_pedido"].unique())
     clima = st.selectbox("Clima", df["clima"].unique())
@@ -96,11 +126,9 @@ if not df.empty:
     retraso = st.slider("Retraso estimado", 0, 30, 5)
 
     nuevo = pd.DataFrame([[zona, tipo_pedido, clima, trafico, retraso]],
-        columns=["zona","tipo_pedido","clima","trafico","retraso"])
-
+                         columns=["zona","tipo_pedido","clima","trafico","retraso"])
     nuevo_ml = pd.get_dummies(nuevo)
     nuevo_ml = nuevo_ml.reindex(columns=X.columns, fill_value=0)
-
     prediccion = model.predict(nuevo_ml)[0]
     st.success(f"⏱️ Tiempo estimado de entrega: {round(prediccion,2)} minutos")
 else:
