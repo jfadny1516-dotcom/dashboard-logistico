@@ -1,7 +1,8 @@
 streamlit
+pandas
 sqlalchemy
 psycopg2-binary
-pandas
 openpyxl
+xlsxwriter
 folium
 streamlit-folium
