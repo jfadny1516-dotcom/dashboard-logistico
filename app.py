@@ -4,55 +4,82 @@ import plotly.express as px
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import os
 
-# ============================
-# 1. Cargar datos desde PostgreSQL
-# ============================
+# ============================================================
+# 🔎 Diagnóstico de conexión (solo para depurar)
+# ============================================================
+st.header("📦 Dashboard Predictivo de Entregas - ChivoFast")
+st.markdown("Análisis y predicción de tiempos de entrega usando Inteligencia Artificial")
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    st.error("❌ No se encontró DATABASE_URL en los Secrets de Streamlit")
+else:
+    # Enmascarar contraseña
+    try:
+        before_at, after_at = DATABASE_URL.split("@", 1)
+        masked = "****@" + after_at
+    except Exception:
+        masked = "****"
+    st.write("🔗 URL detectada (enmascarada):", masked)
+
+    # Forzar formato para SQLAlchemy
+    db_for_sqlalchemy = DATABASE_URL
+    if db_for_sqlalchemy.startswith("postgres://"):
+        db_for_sqlalchemy = db_for_sqlalchemy.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif db_for_sqlalchemy.startswith("postgresql://"):
+        db_for_sqlalchemy = db_for_sqlalchemy.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+    try:
+        engine = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "require"})
+        with engine.connect() as conn:
+            test = conn.execute(text("SELECT 1")).scalar()
+            st.success(f"✅ Conexión a PostgreSQL establecida (prueba SELECT 1 = {test})")
+    except Exception as e:
+        st.error("❌ Error al conectar a la base de datos:")
+        st.text(str(e))
+
+# ============================================================
+# 📥 Cargar datos desde PostgreSQL
+# ============================================================
 @st.cache_data
 def load_data():
-    DATABASE_URL = os.getenv("DATABASE_URL")
     if not DATABASE_URL:
-        st.error("❌ No se encontró DATABASE_URL en los Secrets de Streamlit")
         return pd.DataFrame()
-    engine = create_engine(DATABASE_URL)
+    engine = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "require"})
     df = pd.read_sql("SELECT * FROM entregas", engine)
     return df
 
 df = load_data()
 
-st.title("📦 Dashboard Predictivo de Entregas - ChivoFast")
-st.markdown("Análisis y predicción de tiempos de entrega usando Inteligencia Artificial")
-
 if not df.empty:
-    # ============================
-    # 2. KPIs
-    # ============================
+    # ============================================================
+    # 📊 KPIs
+    # ============================================================
     st.subheader("📌 Indicadores Clave (KPIs)")
     col1, col2, col3 = st.columns(3)
     col1.metric("Promedio de Entrega (min)", round(df["tiempo_entrega"].mean(), 2))
     col2.metric("Retraso Promedio (min)", round(df["retraso"].mean(), 2))
     col3.metric("Total de Entregas", len(df))
 
-    # ============================
-    # 3. Visualizaciones
-    # ============================
+    # ============================================================
+    # 📈 Visualizaciones
+    # ============================================================
     st.subheader("📍 Distribución de Entregas por Zona")
-    fig_zona = px.histogram(df, x="zona", color="zona", title="Número de Entregas por Zona")
-    st.plotly_chart(fig_zona)
+    st.plotly_chart(px.histogram(df, x="zona", color="zona", title="Número de Entregas por Zona"))
 
     st.subheader("🚦 Impacto del Tráfico en Tiempo de Entrega")
-    fig_trafico = px.box(df, x="trafico", y="tiempo_entrega", color="trafico")
-    st.plotly_chart(fig_trafico)
+    st.plotly_chart(px.box(df, x="trafico", y="tiempo_entrega", color="trafico"))
 
     st.subheader("🌦️ Impacto del Clima en Tiempo de Entrega")
-    fig_clima = px.box(df, x="clima", y="tiempo_entrega", color="clima")
-    st.plotly_chart(fig_clima)
+    st.plotly_chart(px.box(df, x="clima", y="tiempo_entrega", color="clima"))
 
-    # ============================
-    # 4. Modelo Predictivo
-    # ============================
+    # ============================================================
+    # 🤖 Modelo Predictivo
+    # ============================================================
     st.subheader("🤖 Predicción de Tiempo de Entrega")
 
     df_ml = pd.get_dummies(df.drop(columns=["id_entrega", "fecha"]), drop_first=True)
@@ -71,9 +98,9 @@ if not df.empty:
     st.write("📊 Resultados del Modelo:")
     st.write(f"MAE: {round(mae,2)} | RMSE: {round(rmse,2)} | R²: {round(r2,2)}")
 
-    # ============================
-    # 5. Predicción interactiva
-    # ============================
+    # ============================================================
+    # 🔮 Predicción interactiva
+    # ============================================================
     st.subheader("🔮 Estimar un nuevo pedido")
 
     zona = st.selectbox("Zona", df["zona"].unique())
@@ -92,3 +119,4 @@ if not df.empty:
     st.success(f"⏱️ Tiempo estimado de entrega: {round(prediccion,2)} minutos")
 else:
     st.warning("⚠️ No se pudieron cargar datos desde la base de datos PostgreSQL.")
+
