@@ -179,3 +179,38 @@ if archivo is not None:
     except Exception as e:
         st.error(f"❌ Error al procesar el archivo: {e}")
 
+import pandas as pd
+import streamlit as st
+from io import BytesIO
+from sqlalchemy import create_engine
+
+# Conexión a tu base en Render
+engine = create_engine("postgresql+psycopg2://usuario:clave@host:puerto/db")
+
+st.title("📦 Dashboard Logístico")
+
+# Cargar datos de la base
+df = pd.read_sql("SELECT * FROM public.entregas", engine)
+
+# Mostrar tabla
+st.dataframe(df)
+
+# Botón para exportar a Excel
+def to_excel(df):
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='Entregas')
+    writer.close()
+    processed_data = output.getvalue()
+    return processed_data
+
+excel_data = to_excel(df)
+
+st.download_button(
+    label="📥 Exportar a Excel",
+    data=excel_data,
+    file_name="entregas.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
+
