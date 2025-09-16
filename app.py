@@ -7,11 +7,15 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sqlalchemy import create_engine, text
 import os
 
+# ============================================================
 # Header y descripción
+# ============================================================
 st.header("📦 Dashboard Predictivo de Entregas - ChivoFast")
 st.markdown("Análisis y predicción de tiempos de entrega usando Inteligencia Artificial")
 
+# ============================================================
 # Configuración de la base de datos
+# ============================================================
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
@@ -30,9 +34,12 @@ else:
     elif db_for_sqlalchemy.startswith("postgresql://"):
         db_for_sqlalchemy = db_for_sqlalchemy.replace("postgresql://", "postgresql+psycopg2://", 1)
 
-   try:
-       engine = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "requiere"})
-       with engine.connect() as conn:   
+    try:
+        engine = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "require"})
+        with engine.connect() as conn:
+            # Prueba de conexión
+            test = conn.execute(text("SELECT 1")).scalar()
+            st.success(f"✅ Conexión a PostgreSQL establecida (prueba SELECT 1 = {test})")
 
             # Crear tabla entregas si no existe
             conn.execute(text("""
@@ -61,7 +68,9 @@ else:
         st.error("❌ Error al conectar o inicializar la base de datos:")
         st.text(str(e))
 
+# ============================================================
 # Función para cargar datos
+# ============================================================
 @st.cache_data
 def load_data():
     if not DATABASE_URL:
@@ -72,7 +81,9 @@ def load_data():
 
 df = load_data()
 
+# ============================================================
 # Dashboard
+# ============================================================
 if not df.empty:
     st.subheader("📌 Indicadores Clave (KPIs)")
     col1, col2, col3 = st.columns(3)
