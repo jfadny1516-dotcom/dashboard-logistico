@@ -18,7 +18,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     st.error("❌ No se encontró DATABASE_URL en los Secrets de Streamlit")
 else:
-    # Enmascarar contraseña
     try:
         before_at, after_at = DATABASE_URL.split("@", 1)
         masked = "****@" + after_at
@@ -26,7 +25,6 @@ else:
         masked = "****"
     st.write("🔗 URL detectada (enmascarada):", masked)
 
-    # Forzar formato para SQLAlchemy
     db_for_sqlalchemy = DATABASE_URL
     if db_for_sqlalchemy.startswith("postgres://"):
         db_for_sqlalchemy = db_for_sqlalchemy.replace("postgres://", "postgresql+psycopg2://", 1)
@@ -56,18 +54,12 @@ def load_data():
 df = load_data()
 
 if not df.empty:
-    # ============================================================
-    # 📊 KPIs
-    # ============================================================
     st.subheader("📌 Indicadores Clave (KPIs)")
     col1, col2, col3 = st.columns(3)
     col1.metric("Promedio de Entrega (min)", round(df["tiempo_entrega"].mean(), 2))
     col2.metric("Retraso Promedio (min)", round(df["retraso"].mean(), 2))
     col3.metric("Total de Entregas", len(df))
 
-    # ============================================================
-    # 📈 Visualizaciones
-    # ============================================================
     st.subheader("📍 Distribución de Entregas por Zona")
     st.plotly_chart(px.histogram(df, x="zona", color="zona", title="Número de Entregas por Zona"))
 
@@ -77,9 +69,6 @@ if not df.empty:
     st.subheader("🌦️ Impacto del Clima en Tiempo de Entrega")
     st.plotly_chart(px.box(df, x="clima", y="tiempo_entrega", color="clima"))
 
-    # ============================================================
-    # 🤖 Modelo Predictivo
-    # ============================================================
     st.subheader("🤖 Predicción de Tiempo de Entrega")
 
     df_ml = pd.get_dummies(df.drop(columns=["id_entrega", "fecha"]), drop_first=True)
@@ -98,9 +87,6 @@ if not df.empty:
     st.write("📊 Resultados del Modelo:")
     st.write(f"MAE: {round(mae,2)} | RMSE: {round(rmse,2)} | R²: {round(r2,2)}")
 
-    # ============================================================
-    # 🔮 Predicción interactiva
-    # ============================================================
     st.subheader("🔮 Estimar un nuevo pedido")
 
     zona = st.selectbox("Zona", df["zona"].unique())
@@ -119,4 +105,3 @@ if not df.empty:
     st.success(f"⏱️ Tiempo estimado de entrega: {round(prediccion,2)} minutos")
 else:
     st.warning("⚠️ No se pudieron cargar datos desde la base de datos PostgreSQL.")
-
