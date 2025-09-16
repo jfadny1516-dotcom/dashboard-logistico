@@ -143,6 +143,13 @@ else:
     st.subheader("🤖 Predicción de Tiempo de Entrega")
 
     df_ml = pd.get_dummies(df.drop(columns=["id_entrega", "fecha"]), drop_first=True)
+
+    # Mantener solo las columnas de zonas válidas
+    zonas_validas = ["zona_San Miguel", "zona_Santa Ana", "zona_La Libertad"]
+    for col in df_ml.columns:
+        if col.startswith("zona_") and col not in zonas_validas:
+            df_ml.drop(columns=[col], inplace=True)
+
     X = df_ml.drop(columns=["tiempo_entrega"])
     y = df_ml["tiempo_entrega"]
 
@@ -162,7 +169,7 @@ else:
     # Estimar nueva entrega
     # =========================
     st.subheader("🔮 Estimar un nuevo pedido")
-    zona_new = st.selectbox("Zona", df["zona"].unique(), key="zona_pred")
+    zona_new = st.selectbox("Zona", ["San Salvador", "San Miguel", "Santa Ana", "La Libertad"], key="zona_pred")
     tipo_pedido_new = st.selectbox("Tipo de pedido", df["tipo_pedido"].unique(), key="tipo_pred")
     clima_new = st.selectbox("Clima", df["clima"].unique(), key="clima_pred")
     trafico_new = st.selectbox("Tráfico", df["trafico"].unique(), key="trafico_pred")
@@ -189,28 +196,19 @@ else:
 # MAPA EL SALVADOR
 # =========================
 st.subheader("🌍 Mapa de zonas - Clima y tráfico (simulado)")
-zonas = {
+zonas_coords = {
     "San Salvador": [13.6929, -89.2182],
     "San Miguel": [13.4833, -88.1833],
-    "Santa Ana": [13.9942, -89.5597],
-    "La Libertad": [13.4885, -89.3220]
-}
-climas = {
-    "San Salvador": "Soleado, 30°C ☀️",
-    "San Miguel": "Lluvioso, 25°C 🌧️",
-    "Santa Ana": "Nublado, 26°C ☁️",
-    "La Libertad": "Soleado, 28°C 🌞"
-}
-trafico = {
-    "San Salvador": "Alto 🚦",
-    "San Miguel": "Medio 🟡",
-    "Santa Ana": "Bajo 🟢",
-    "La Libertad": "Medio 🟡"
+    "Santa Ana": [13.9940, -89.5590],
+    "La Libertad": [13.4849, -89.3007]
 }
 
-m = folium.Map(location=[13.6929, -89.2182], zoom_start=8)
-for zona, coords in zonas.items():
-    info = f"<b>{zona}</b><br>Clima: {climas[zona]}<br>Tráfico: {trafico[zona]}"
-    folium.Marker(location=coords, popup=info, tooltip=zona,
-                  icon=folium.Icon(color="blue", icon="info-sign")).add_to(m)
+m = folium.Map(location=[13.7, -89.2], zoom_start=7)
+for index, row in df.iterrows():
+    lat, lon = zonas_coords.get(row["zona"], [13.7, -89.2])
+    folium.Marker(
+        [lat, lon],
+        popup=f"Zona: {row['zona']}<br>Clima: {row['clima']}<br>Tráfico: {row['trafico']}<br>Tiempo: {row['tiempo_entrega']} min",
+        icon=folium.Icon(color="blue", icon="info-sign")
+    ).add_to(m)
 st_folium(m, width=700, height=500)
