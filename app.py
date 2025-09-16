@@ -30,11 +30,9 @@ else:
     elif db_for_sqlalchemy.startswith("postgresql://"):
         db_for_sqlalchemy = db_for_sqlalchemy.replace("postgresql://", "postgresql+psycopg2://", 1)
 
-    try:
-        engine = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "require"})
-        with engine.connect() as conn:
-            test = conn.execute(text("SELECT 1")).scalar()
-            st.success(f"✅ Conexión a PostgreSQL establecida (prueba SELECT 1 = {test})")
+   try:
+       engine = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "requiere"})
+       with engine.connect() as conn:
 
             # Crear tabla entregas si no existe
             conn.execute(text("""
