@@ -35,40 +35,38 @@ else:
         db_for_sqlalchemy = db_for_sqlalchemy.replace("postgresql://", "postgresql+psycopg2://", 1)
 
     try:
-        engine = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "require"})
-        with engine.connect() as conn:
-            # Prueba de conexión
-            test = conn.execute(text("SELECT 1")).scalar()
-            st.success(f"✅ Conexión a PostgreSQL establecida (prueba SELECT 1 = {test})")
+    engine = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "require"})
+    with engine.connect() as conn:
+        # Prueba de conexión
+        test = conn.execute(text("SELECT 1")).scalar()
+        st.success(f"✅ Conexión a PostgreSQL establecida (prueba SELECT 1 = {test})")
 
-            # ============================================================
-            # 🛠 Crear tabla entregas si no existe
-            # ============================================================
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS entregas (
-                    id_entrega SERIAL PRIMARY KEY,
-                    fecha TIMESTAMP NOT NULL,
-                    zona VARCHAR(50) NOT NULL,
-                    tipo_pedido VARCHAR(50) NOT NULL,
-                    clima VARCHAR(20) NOT NULL,
-                    trafico VARCHAR(20) NOT NULL,
-                    tiempo_entrega INT NOT NULL,
-                    retraso INT NOT NULL
-                );
-            """))
+        # Crear tabla entregas si no existe
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS entregas (
+                id_entrega SERIAL PRIMARY KEY,
+                fecha TIMESTAMP NOT NULL,
+                zona VARCHAR(50) NOT NULL,
+                tipo_pedido VARCHAR(50) NOT NULL,
+                clima VARCHAR(20) NOT NULL,
+                trafico VARCHAR(20) NOT NULL,
+                tiempo_entrega INT NOT NULL,
+                retraso INT NOT NULL
+            );
+        """))
 
-            # Insertar datos de prueba
-            conn.execute(text("""
-                INSERT INTO entregas (fecha, zona, tipo_pedido, clima, trafico, tiempo_entrega, retraso)
-                VALUES
-                ('2025-09-16 10:00', 'Zona 1', 'Normal', 'Soleado', 'Fluido', 45, 0),
-                ('2025-09-16 12:30', 'Zona 2', 'Express', 'Lluvioso', 'Pesado', 60, 15),
-                ('2025-09-16 14:00', 'Zona 3', 'Normal', 'Nublado', 'Moderado', 50, 5)
-                ON CONFLICT DO NOTHING;
-            """))
-    except Exception as e:
-        st.error("❌ Error al conectar o inicializar la base de datos:")
-        st.text(str(e))
+        # Insertar datos de prueba
+        conn.execute(text("""
+            INSERT INTO entregas (fecha, zona, tipo_pedido, clima, trafico, tiempo_entrega, retraso)
+            VALUES
+            ('2025-09-16 10:00', 'Zona 1', 'Normal', 'Soleado', 'Fluido', 45, 0),
+            ('2025-09-16 12:30', 'Zona 2', 'Express', 'Lluvioso', 'Pesado', 60, 15),
+            ('2025-09-16 14:00', 'Zona 3', 'Normal', 'Nublado', 'Moderado', 50, 5)
+            ON CONFLICT DO NOTHING;
+        """))
+except Exception as e:
+    st.error("❌ Error al conectar o inicializar la base de datos:")
+    st.text(str(e))
 
 # ============================================================
 # 📥 Cargar datos desde PostgreSQL
