@@ -9,6 +9,8 @@ import os
 from datetime import datetime
 
 st.set_page_config(page_title="Dashboard ChivoFast", layout="wide")
+st.header("📦 Dashboard Predictivo de Entregas - ChivoFast")
+st.markdown("Análisis y predicción de tiempos de entrega usando Inteligencia Artificial")
 
 # ============================================================
 # 🔗 Conexión a PostgreSQL (Render)
