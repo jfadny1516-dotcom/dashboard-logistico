@@ -7,15 +7,11 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sqlalchemy import create_engine, text
 import os
 
-# ============================================================
-# 🔎 Encabezado y descripción
-# ============================================================
+# Header y descripción
 st.header("📦 Dashboard Predictivo de Entregas - ChivoFast")
 st.markdown("Análisis y predicción de tiempos de entrega usando Inteligencia Artificial")
 
-# ============================================================
-# 🔗 Configuración de la base de datos
-# ============================================================
+# Configuración de la base de datos
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
@@ -36,13 +32,11 @@ else:
 
     try:
         engine = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "require"})
-        with engine.connect() as conn:# Prueba de conexión
+        with engine.connect() as conn:
             test = conn.execute(text("SELECT 1")).scalar()
             st.success(f"✅ Conexión a PostgreSQL establecida (prueba SELECT 1 = {test})")
 
-            # ============================================================
-            # 🛠 Crear tabla entregas si no existe
-            # ============================================================
+            # Crear tabla entregas si no existe
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS entregas (
                     id_entrega SERIAL PRIMARY KEY,
@@ -69,9 +63,7 @@ else:
         st.error("❌ Error al conectar o inicializar la base de datos:")
         st.text(str(e))
 
-# ============================================================
-# 📥 Cargar datos desde PostgreSQL
-# ============================================================
+# Función para cargar datos
 @st.cache_data
 def load_data():
     if not DATABASE_URL:
@@ -82,9 +74,7 @@ def load_data():
 
 df = load_data()
 
-# ============================================================
-# 📊 Dashboard y análisis
-# ============================================================
+# Dashboard
 if not df.empty:
     st.subheader("📌 Indicadores Clave (KPIs)")
     col1, col2, col3 = st.columns(3)
