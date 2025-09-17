@@ -9,65 +9,49 @@ import folium
 from streamlit_folium import st_folium
 import requests
 import io
-import os
 
-# ================== Configuración ==================
-st.set_page_config(page_title="Dashboard Logístico", layout="wide")
-st.header("📦 Dashboard Predictivo de Entregas - ChivoFast")
-st.markdown("Análisis y predicción de tiempos de entrega usando Inteligencia Artificial")
+# ============================================================
+# 🔗 Conexión a la base de datos (Render)
+# ============================================================
+DB_URL = "postgresql://chivofast_db_user:VOVsj9KYQdoI7vBjpdIpTG1jj2Bvj0GS@dpg-d34osnbe5dus739qotu0-a.oregon-postgres.render.com/chivofast_db"
 
-# ================== Base de Datos ==================
-DATABASE_URL = st.secrets.get("DATABASE_URL", None)
+db_for_sqlalchemy = DB_URL
+if db_for_sqlalchemy.startswith("postgres://"):
+    db_for_sqlalchemy = db_for_sqlalchemy.replace("postgres://", "postgresql+psycopg2://", 1)
+elif db_for_sqlalchemy.startswith("postgresql://"):
+    db_for_sqlalchemy = db_for_sqlalchemy.replace("postgresql://", "postgresql+psycopg2://", 1)
 
-if not DATABASE_URL:
-    st.error("❌ No se encontró DATABASE_URL en los Secrets de Streamlit")
-else:
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
-    engine = create_engine(DATABASE_URL, connect_args={"sslmode":"require"})
-    try:
-        with engine.connect() as conn:
-            test = conn.execute(text("SELECT 1")).scalar()
-            st.success(f"✅ Conexión PostgreSQL establecida (SELECT 1 = {test})")
-    except Exception as e:
-        st.error(f"❌ Error al conectar a la base de datos: {e}")
+try:
+    engine = create_engine(db_for_sqlalchemy, connect_args={"sslmode": "require"})
+    with engine.connect() as conn:
+        test = conn.execute(text("SELECT 1")).scalar()
+        st.success(f"✅ Conexión a PostgreSQL establecida (SELECT 1 = {test})")
+except Exception as e:
+    st.error("❌ Error al conectar a la base de datos:")
+    st.text(str(e))
 
-# ================== Cargar Datos ==================
+# ============================================================
+# 📥 Cargar datos
+# ============================================================
 @st.cache_data
 def load_data():
-    if not DATABASE_URL:
-        return pd.DataFrame()
     df = pd.read_sql("SELECT * FROM entregas", engine)
     return df
 
 df = load_data()
 
-# ================== Exportar Excel ==================
-def to_excel(df):
-    output = io.BytesIO()
-    writer = pd.ExcelWriter(output, engine="xlsxwriter")
-    df.to_excel(writer, index=False, sheet_name="Entregas")
-    writer.close()
-    processed_data = output.getvalue()
-    return processed_data
+# ============================================================
+# 🚀 Visualización y KPIs
+# ============================================================
+st.header("📦 Dashboard Predictivo de Entregas - ChivoFast")
+st.markdown("Análisis y predicción de tiempos de entrega usando Inteligencia Artificial")
 
 if not df.empty:
-    st.download_button(
-        label="📥 Exportar datos a Excel",
-        data=to_excel(df),
-        file_name="entregas.xlsx"
-    )
-
-# ================== KPIs ==================
-if not df.empty:
-    st.subheader("📌 Indicadores Clave (KPIs)")
     col1, col2, col3 = st.columns(3)
     col1.metric("Promedio de Entrega (min)", round(df["tiempo_entrega"].mean(), 2))
     col2.metric("Retraso Promedio (min)", round(df["retraso"].mean(), 2))
     col3.metric("Total de Entregas", len(df))
 
-# ================== Gráficos ==================
-if not df.empty:
     st.subheader("📍 Distribución de Entregas por Zona")
     st.plotly_chart(px.histogram(df, x="zona", color="zona", title="Número de Entregas por Zona"))
 
@@ -77,24 +61,12 @@ if not df.empty:
     st.subheader("🌦️ Impacto del Clima en Tiempo de Entrega")
     st.plotly_chart(px.box(df, x="clima", y="tiempo_entrega", color="clima"))
 
-# ================== Mapa ==================
-if not df.empty:
-    st.subheader("🗺️ Mapa de Entregas en El Salvador")
-    mapa = folium.Map(location=[13.7, -88.8], zoom_start=7)
-    for _, row in df.iterrows():
-        folium.CircleMarker(
-            location=[13.7 + (row.name%10)*0.01, -88.8 + (row.name%10)*0.01],
-            radius=5,
-            popup=f"Zona: {row['zona']}\nTiempo: {row['tiempo_entrega']} min",
-            color="blue",
-            fill=True
-        ).add_to(mapa)
-    st_folium(mapa, width=700, height=500)
-
-# ================== Modelo de Predicción ==================
-if not df.empty:
+    # ============================================================
+    # 🤖 Predicción con RandomForest
+    # ============================================================
     st.subheader("🤖 Predicción de Tiempo de Entrega")
-    df_ml = pd.get_dummies(df.drop(columns=["id_entrega","fecha"]), drop_first=True)
+
+    df_ml = pd.get_dummies(df.drop(columns=["id_entrega", "fecha"]), drop_first=True)
     X = df_ml.drop(columns=["tiempo_entrega"])
     y = df_ml["tiempo_entrega"]
 
@@ -107,10 +79,14 @@ if not df.empty:
     rmse = mean_squared_error(y_test, y_pred, squared=False)
     r2 = r2_score(y_test, y_pred)
 
+    st.write("📊 Resultados del Modelo:")
     st.write(f"MAE: {round(mae,2)} | RMSE: {round(rmse,2)} | R²: {round(r2,2)}")
 
+    # ============================================================
+    # 🔮 Estimar nuevo pedido
+    # ============================================================
     st.subheader("🔮 Estimar un nuevo pedido")
-    zona = st.selectbox("Zona", df["zona"].unique())
+    zona = st.selectbox("Zona", ["San Salvador", "San Miguel", "Santa Ana", "La Libertad"])
     tipo_pedido = st.selectbox("Tipo de pedido", df["tipo_pedido"].unique())
     clima = st.selectbox("Clima", df["clima"].unique())
     trafico = st.selectbox("Tráfico", df["trafico"].unique())
@@ -122,3 +98,37 @@ if not df.empty:
     nuevo_ml = nuevo_ml.reindex(columns=X.columns, fill_value=0)
     prediccion = model.predict(nuevo_ml)[0]
     st.success(f"⏱️ Tiempo estimado de entrega: {round(prediccion,2)} minutos")
+
+    # ============================================================
+    # 📥 Exportar a Excel
+    # ============================================================
+    def to_excel(df_export):
+        output = io.BytesIO()
+        writer = pd.ExcelWriter(output, engine="xlsxwriter")
+        df_export.to_excel(writer, index=False, sheet_name="Entregas")
+        writer.close()
+        processed_data = output.getvalue()
+        return processed_data
+
+    st.download_button(label="💾 Exportar datos a Excel",
+                       data=to_excel(df),
+                       file_name="entregas.xlsx",
+                       mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    # ============================================================
+    # 🗺️ Mapa con folium + clima (OpenWeather)
+    # ============================================================
+    st.subheader("🗺️ Mapa de El Salvador")
+    mapa = folium.Map(location=[13.7, -89.2], zoom_start=7)
+    # Ejemplo: agregar marcador para cada entrega
+    for _, row in df.iterrows():
+        folium.Marker(
+            [13.7 + (hash(row["zona"])%100)/1000, -89.2 + (hash(row["zona"])%100)/1000],
+            popup=f"{row['tipo_pedido']} - Tiempo: {row['tiempo_entrega']} min"
+        ).add_to(mapa)
+
+    # Mostrar mapa
+    st_data = st_folium(mapa, width=700, height=500)
+
+else:
+    st.warning("⚠️ No se pudieron cargar datos desde la base de datos PostgreSQL.")
