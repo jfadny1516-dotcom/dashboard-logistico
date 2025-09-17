@@ -1,27 +1,12 @@
-# Streamlit para el dashboard
 streamlit==1.28.0
-
-# Procesamiento de datos
 pandas==2.1.0
 numpy==1.26.2
-
-# Gráficas interactivas
 plotly==5.17.0
-
-# Modelos de ML
-scikit-learn==1.3.0
-
-# Conexión PostgreSQL
+scikit-learn==1.2.2
 sqlalchemy==2.0.20
 psycopg2-binary==2.9.9
-
-# Exportar Excel
 openpyxl==3.1.2
 xlsxwriter==3.1.0
-
-# Mapas
 folium==0.17.1
 streamlit-folium==0.11.0
-
-# Llamadas a APIs externas
 requests==2.31.0
